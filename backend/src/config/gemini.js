@@ -5,7 +5,7 @@
  */
 
 const config = {
-  apiKey: process.env.GEMINI_API_KEY,
+  apiKey: "AIzaSyANe2LvfylpnMNq1K6COkyrgcFb-yCfa6A",
   rateLimitPerMin: Number(process.env.GEMINI_RATE_LIMIT_PER_MIN || 60),
   model: process.env.GEMINI_MODEL || 'flash-2.5',
   timeoutMs: Number(process.env.GEMINI_TIMEOUT_MS || 60000),

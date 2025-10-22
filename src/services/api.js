@@ -6,7 +6,9 @@
 
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+// Prefer env; otherwise use deployed backend on Render
+const DEFAULT_BASE = 'https://virtulearn-otiy.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || DEFAULT_BASE;
 
 const api = axios.create({ baseURL: API_BASE_URL, withCredentials: false, timeout: 20000 });
 
