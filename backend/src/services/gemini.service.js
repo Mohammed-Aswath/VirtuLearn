@@ -38,7 +38,7 @@ async function chat(userId, context, message) {
     }
 
     try {
-      const endpoint = `${geminiConfig.endpointBase}/${encodeURIComponent(geminiConfig.model)}:generateContent?key=${geminiConfig.apiKey}`;
+      const endpoint = `${geminiConfig.endpointBase}/${encodeURIComponent(geminiConfig.model)}:generateContent`;
 
       const history = Array.isArray(context) ? context.slice(-6) : [];
       const contents = [
@@ -51,8 +51,14 @@ async function chat(userId, context, message) {
 
       const { data } = await axios.post(
         endpoint,
-        { contents, safetySettings: [], generationConfig: { temperature: 0.8, topK: 40, topP: 0.95 } },
-        { headers: { 'Content-Type': 'application/json' }, timeout: geminiConfig.timeoutMs }
+        { contents },
+        {
+          headers: {
+            'x-goog-api-key': geminiConfig.apiKey,
+            'Content-Type': 'application/json',
+          },
+          timeout: geminiConfig.timeoutMs,
+        }
       );
       const text =
         data?.candidates?.[0]?.content?.parts?.[0]?.text ||

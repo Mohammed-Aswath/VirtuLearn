@@ -23,6 +23,9 @@ const s3Routes = require('./routes/s3.routes');
 
 const app = express();
 
+// Render / proxies: trust first proxy so rate limiter sees correct client IP
+app.set('trust proxy', 1);
+
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 app.use(cors({ origin: [CLIENT_URL, 'http://localhost:5173', 'http://localhost:8080'], credentials: true }));
 app.use(helmet());
