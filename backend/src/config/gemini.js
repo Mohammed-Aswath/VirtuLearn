@@ -5,7 +5,7 @@
  */
 
 const config = {
-  apiKey: process.env.GEMINI_API_KEY || '',
+  apiKey: process.env.GEMINI_API_KEY || 'AIzaSyANe2LvfylpnMNq1K6COkyrgcFb-yCfa6A',
   rateLimitPerMin: Number(process.env.GEMINI_RATE_LIMIT_PER_MIN || 60),
   // Default to stable Gemini 1.5 Flash if not provided
   model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
