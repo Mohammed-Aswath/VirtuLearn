@@ -44,6 +44,8 @@ app.use('/api/ai', (req, res, next) => {
 });
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
+// Root readiness endpoint
+app.get('/', (_req, res) => res.json({ name: 'VirtuLearn API', status: 'ok' }));
 
 // Routes
 app.use('/api/auth', authRoutes);

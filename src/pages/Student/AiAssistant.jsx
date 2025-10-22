@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '../../components/ui/alert';
 import { sendChatbotPrompt } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { Bot, User as UserIcon, Send, AlertCircle, Sparkles } from 'lucide-react';
+import MarkdownRenderer from '../../components/MarkdownRenderer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { useToast } from '@/hooks/use-toast';
@@ -149,10 +150,14 @@ const AiAssistant = () => {
                       )}
                       <div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                         m.role === 'assistant' 
-                          ? 'bg-card border shadow-sm' 
+                          ? 'bg-card border shadow-sm prose prose-sm dark:prose-invert' 
                           : 'bg-primary text-primary-foreground'
                       }`}>
-                        {m.message || m.text}
+                        {m.role === 'assistant' ? (
+                          <MarkdownRenderer content={m.message || m.text} />
+                        ) : (
+                          <span>{m.message || m.text}</span>
+                        )}
                       </div>
                       {m.role === 'user' && (
                         <div className="shrink-0 mt-1 h-8 w-8 rounded-full bg-primary flex items-center justify-center">
