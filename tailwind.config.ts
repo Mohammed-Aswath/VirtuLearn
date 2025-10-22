@@ -81,6 +81,10 @@ export default {
         md: "var(--shadow-md)",
         lg: "var(--shadow-lg)",
         xl: "var(--shadow-xl)",
+        glow: "var(--shadow-glow)",
+      },
+      transitionTimingFunction: {
+        spring: "cubic-bezier(0.34, 1.56, 0.64, 1)",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -134,6 +138,24 @@ export default {
             opacity: "1",
           },
         },
+        "scale-in": {
+          "0%": {
+            transform: "scale(0.95)",
+            opacity: "0",
+          },
+          "100%": {
+            transform: "scale(1)",
+            opacity: "1",
+          },
+        },
+        "pulse-glow": {
+          "0%, 100%": {
+            boxShadow: "0 0 20px hsl(var(--primary) / 0.3)",
+          },
+          "50%": {
+            boxShadow: "0 0 40px hsl(var(--primary) / 0.5)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -141,6 +163,8 @@ export default {
         "fade-in": "fade-in 0.3s ease-out",
         "slide-up": "slide-up 0.3s ease-out",
         "slide-in": "slide-in 0.3s ease-out",
+        "scale-in": "scale-in 0.2s ease-out",
+        "pulse-glow": "pulse-glow 2s ease-in-out infinite",
       },
     },
   },
