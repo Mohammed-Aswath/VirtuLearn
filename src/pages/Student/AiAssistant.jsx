@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Card } from '../../components/ui/card';
-import { Button } from './ui/button';
+import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { sendChatbotPrompt } from '../../services/api';
