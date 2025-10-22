@@ -23,8 +23,8 @@ const s3Routes = require('./routes/s3.routes');
 
 const app = express();
 
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:8080';
-app.use(cors({ origin: [CLIENT_URL, 'http://localhost:8080'], credentials: true }));
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+app.use(cors({ origin: [CLIENT_URL, 'http://localhost:5173', 'http://localhost:8080'], credentials: true }));
 app.use(helmet());
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));

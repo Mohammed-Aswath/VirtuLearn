@@ -108,3 +108,29 @@ Using the real backend:
   - Student: `alex@example.com / password123`
   - Teacher: `sarah@example.com / password123`
 - Login via app; JWT is stored locally and sent on future requests
+
+### AI Assistant: connect to Gemini or GPT
+
+- Backend expects environment variables (in `backend/.env`):
+  - `GEMINI_API_KEY=your_key_here`
+  - optional: `GEMINI_MODEL=gemini-1.5-flash`, `GEMINI_TIMEOUT_MS=60000`, `CLIENT_URL=http://localhost:5173`
+- Frontend will POST to `POST /api/ai/chat` via `src/services/api.js`.
+- If `GEMINI_API_KEY` is missing, the backend returns a safe fallback response. Set the key and restart the backend to enable real model replies.
+
+Example backend `.env`:
+
+```
+PORT=8081
+MONGODB_URI=mongodb://localhost:27017/virtulearn
+JWT_SECRET=change_me
+CLIENT_URL=http://localhost:5173
+GEMINI_API_KEY=sk-...your-key...
+GEMINI_MODEL=gemini-1.5-flash
+GEMINI_TIMEOUT_MS=60000
+```
+
+Example frontend `.env`:
+
+```
+VITE_BACKEND_URL=http://localhost:8081
+```

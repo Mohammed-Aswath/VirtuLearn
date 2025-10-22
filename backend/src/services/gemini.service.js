@@ -4,6 +4,8 @@
  * TODO: Replace mocks with real Gemini API calls using fetch/axios
  */
 
+const axios = require('axios');
+const logger = require('../utils/logger');
 let queue = { add: (fn) => Promise.resolve().then(fn) };
 const geminiConfig = require('../config/gemini');
 try {
@@ -31,12 +33,11 @@ async function chat(userId, context, message) {
     });
 
     if (!geminiConfig.apiKey) {
+      logger.warn('Gemini API key is missing. Returning fallback.');
       return fallback();
     }
 
     try {
-      const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), geminiConfig.timeoutMs);
       const endpoint = `${geminiConfig.endpointBase}/${encodeURIComponent(geminiConfig.model)}:generateContent?key=${geminiConfig.apiKey}`;
 
       const history = Array.isArray(context) ? context.slice(-6) : [];
@@ -48,16 +49,11 @@ async function chat(userId, context, message) {
         { role: 'user', parts: [{ text: message }] },
       ];
 
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-        body: JSON.stringify({ contents, safetySettings: [], generationConfig: { temperature: 0.8, topK: 40, topP: 0.95 } }),
-      });
-      clearTimeout(id);
-
-      if (!res.ok) throw new Error(`Gemini HTTP ${res.status}`);
-      const data = await res.json();
+      const { data } = await axios.post(
+        endpoint,
+        { contents, safetySettings: [], generationConfig: { temperature: 0.8, topK: 40, topP: 0.95 } },
+        { headers: { 'Content-Type': 'application/json' }, timeout: geminiConfig.timeoutMs }
+      );
       const text =
         data?.candidates?.[0]?.content?.parts?.[0]?.text ||
         data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data ||
@@ -71,7 +67,12 @@ async function chat(userId, context, message) {
         ],
         suggestion: 'Would you like a quick practice quiz?',
       };
-    } catch (_err) {
+    } catch (err) {
+      logger.warn('Gemini chat call failed; returning fallback', {
+        error: err.message,
+        userId,
+        model: geminiConfig.model,
+      });
       return fallback();
     }
   });
