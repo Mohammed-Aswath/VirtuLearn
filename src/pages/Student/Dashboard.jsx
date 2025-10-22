@@ -1,13 +1,43 @@
 import { Award, BookOpen, FlaskConical, MessageSquare } from 'lucide-react';
 import StatCard from '../../components/StatCard';
 import QuizCard from '../../components/QuizCard';
-import { mockQuizzes } from '../../data/mockData';
+import { useEffect, useState } from 'react';
+import { getQuizzes } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
-  const pendingQuizzes = mockQuizzes.filter(q => q.status === 'pending');
-  const recentQuizzes = mockQuizzes.filter(q => q.status === 'attended').slice(0, 3);
+  const [pendingQuizzes, setPendingQuizzes] = useState([]);
+  const [recentQuizzes, setRecentQuizzes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const qs = await getQuizzes();
+        if (!mounted) return;
+        setPendingQuizzes((qs || []).filter((q) => q.status === 'pending'));
+        setRecentQuizzes((qs || []).filter((q) => q.status === 'attended').slice(0, 3));
+      } catch (e) {
+        setError(e.message || 'Failed to load quizzes');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (loading) {
+    return <div className="text-center text-muted-foreground">Loading dashboard...</div>;
+  }
+  if (error) {
+    return <div className="text-center text-destructive">{error}</div>;
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">

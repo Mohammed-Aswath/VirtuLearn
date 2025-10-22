@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { mockExperiments, subjects } from '../../data/mockData';
+import { useEffect, useState } from 'react';
+import { subjects } from '../../data/mockData';
+import { getExperiments } from '../../services/api';
 import ExperimentCard from '../../components/ExperimentCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { FlaskConical } from 'lucide-react';
@@ -7,9 +8,11 @@ import { FlaskConical } from 'lucide-react';
 const Experiments = () => {
   const [selectedSubject, setSelectedSubject] = useState('Physics');
 
-  const filteredExperiments = mockExperiments.filter(
-    exp => exp.subject === selectedSubject
-  );
+  const [experiments, setExperiments] = useState([]);
+
+  useEffect(() => {
+    getExperiments({ subject: selectedSubject }).then(setExperiments);
+  }, [selectedSubject]);
 
   const handleOpenLab = (experiment) => {
     // In production, this would open the Arcware URL
@@ -46,12 +49,12 @@ const Experiments = () => {
                 {subject} Experiments
               </h2>
               <span className="text-sm text-muted-foreground">
-                {filteredExperiments.length} available
+                {experiments.length} available
               </span>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {filteredExperiments.map(experiment => (
+              {experiments.map(experiment => (
                 <ExperimentCard
                   key={experiment.id}
                   experiment={experiment}

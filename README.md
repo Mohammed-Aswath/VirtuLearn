@@ -71,3 +71,40 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+
+## How to replace mock data with real API endpoints
+
+This app is wired to a mock API layer in `src/services/api.js`. To migrate to a real Node/Express backend:
+
+1. Set `VITE_USE_MOCKS=false` in your environment.
+2. Replace each function in `src/services/api.js` from `Promise.resolve(...)` to axios calls:
+
+```js
+// Before (mock)
+export async function getQuizzes(params) {
+  return Promise.resolve(mockQuizzes);
+}
+
+// After (real)
+// TODO: Replace mock call with axios.get('/api/quizzes', { params })
+import axios from 'axios';
+export async function getQuizzes(params) {
+  const { data } = await axios.get('/api/quizzes', { params });
+  return data;
+}
+```
+
+3. Keep component contracts unchanged (shape of responses must match the frontend expectations noted in file headers). If your backend schema differs, adapt and normalize data in `services/api.js` only.
+
+4. Add authentication headers/interceptors in `services/api.js` once backend auth is ready.
+
+Developer workflow:
+- Build UI against mocks → hook up real endpoints in `services/api.js` → remove mocks by switching the env flag.
+
+Using the real backend:
+- Set `VITE_BACKEND_URL=http://localhost:5000` in a `.env` at the project root
+- Start backend: `cd backend && npm run start:dev`
+- Seed users: `npm run seed` (backend)
+  - Student: `alex@example.com / password123`
+  - Teacher: `sarah@example.com / password123`
+- Login via app; JWT is stored locally and sent on future requests

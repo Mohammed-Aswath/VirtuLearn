@@ -33,7 +33,7 @@ const QuizCard = ({ quiz }) => {
       navigate(`/student/quiz-analysis/${quiz.id}`);
     } else if (quiz.status === 'pending') {
       // TODO: Navigate to quiz taking page
-      console.log('Start quiz:', quiz.id);
+      navigate(`/student/quizzes/${quiz.id}/attempt`);
     }
   };
 

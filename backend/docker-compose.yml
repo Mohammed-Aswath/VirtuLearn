@@ -1,0 +1,26 @@
+version: '3.9'
+services:
+  mongo:
+    image: mongo:6
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+  api:
+    build: .
+    environment:
+      - PORT=8081
+      - MONGODB_URI=mongodb://mongo:27017/virtulearn
+      - JWT_SECRET=dev_secret
+      - CLIENT_URL=http://localhost:8080
+      - AWS_REGION=us-east-1
+      - AWS_S3_BUCKET=virtulearn-dev
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mongo
+volumes:
+  mongo_data:
+
+

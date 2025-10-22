@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { mockStudents, mockTeachers } from '../data/mockData';
+import { login as apiLogin } from '../services/api';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -14,21 +14,30 @@ const Login = () => {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
-  const handleStudentLogin = (e) => {
+  const handleStudentLogin = async (e) => {
     e.preventDefault();
-    // Mock login - in production, this would validate against backend
-    const student = mockStudents[0];
-    login(student, 'student');
-    navigate('/student/dashboard');
+    setError('');
+    try {
+      const { user } = await apiLogin(email, password);
+      login(user, user.role);
+      navigate('/student/dashboard');
+    } catch (err) {
+      setError(err.message || 'Login failed');
+    }
   };
 
-  const handleTeacherLogin = (e) => {
+  const handleTeacherLogin = async (e) => {
     e.preventDefault();
-    // Mock login - in production, this would validate against backend
-    const teacher = mockTeachers[0];
-    login(teacher, 'teacher');
-    navigate('/teacher/dashboard');
+    setError('');
+    try {
+      const { user } = await apiLogin(email, password);
+      login(user, user.role);
+      navigate('/teacher/dashboard');
+    } catch (err) {
+      setError(err.message || 'Login failed');
+    }
   };
 
   return (
@@ -84,8 +93,11 @@ const Login = () => {
                 <Button type="submit" className="w-full">
                   Login as Student
                 </Button>
-                <p className="text-xs text-center text-muted-foreground">
-                  Demo: Any email/password will work
+                {error && (
+                  <p className="text-xs text-center text-destructive">{error}</p>
+                )}
+                <p className="text-xs text-center text-muted-foreground mt-1">
+                  Seed users: alex@example.com / password123
                 </p>
               </form>
             </TabsContent>
@@ -117,8 +129,11 @@ const Login = () => {
                 <Button type="submit" className="w-full">
                   Login as Teacher
                 </Button>
-                <p className="text-xs text-center text-muted-foreground">
-                  Demo: Any email/password will work
+                {error && (
+                  <p className="text-xs text-center text-destructive">{error}</p>
+                )}
+                <p className="text-xs text-center text-muted-foreground mt-1">
+                  Seed users: sarah@example.com / password123
                 </p>
               </form>
             </TabsContent>
@@ -126,7 +141,7 @@ const Login = () => {
         </Card>
 
         <p className="text-center text-sm text-muted-foreground">
-          This is a demo environment with mock authentication
+          This environment uses real backend authentication.
         </p>
       </div>
     </div>
