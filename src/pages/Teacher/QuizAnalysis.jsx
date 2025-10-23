@@ -7,13 +7,13 @@
 import { useEffect, useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { getQuizzes, getQuizAttempts } from '../../services/api';
+import { getQuizzes, getQuizAnalytics, downloadQuizReport } from '../../services/api';
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
 
 const TeacherQuizAnalysis = () => {
   const [quizzes, setQuizzes] = useState([]);
   const [quizId, setQuizId] = useState('');
-  const [attempts, setAttempts] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
 
   useEffect(() => {
     getQuizzes().then((qs) => {
@@ -24,7 +24,7 @@ const TeacherQuizAnalysis = () => {
 
   useEffect(() => {
     if (!quizId) return;
-    getQuizAttempts(quizId).then(setAttempts);
+    getQuizAnalytics(quizId).then(setAnalytics);
   }, [quizId]);
 
   return (
@@ -45,9 +45,33 @@ const TeacherQuizAnalysis = () => {
           </Select>
         </div>
 
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            {analytics ? (
+              <span>
+                Attempts: <span className="text-foreground font-medium">{analytics.summary.attempts}</span> • Avg Score: <span className="text-foreground font-medium">{analytics.summary.averageScore}</span>
+              </span>
+            ) : 'Loading analytics...'}
+          </div>
+          <button
+            className="rounded-md border px-3 py-1 text-sm hover:bg-muted"
+            onClick={async () => {
+              const blob = await downloadQuizReport(quizId);
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `quiz-report-${quizId}.pdf`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            Download PDF Report
+          </button>
+        </div>
+
         <div className="h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={attempts.map((a) => ({ name: a.studentId, score: a.score }))}>
+            <LineChart data={(analytics?.attempts || []).map((a) => ({ name: a.studentId, score: a.score }))}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis domain={[0, 100]} />
@@ -56,6 +80,20 @@ const TeacherQuizAnalysis = () => {
             </LineChart>
           </ResponsiveContainer>
         </div>
+
+        {analytics && (
+          <div className="space-y-2">
+            <div className="font-semibold">Question Accuracy</div>
+            <div className="grid gap-2 md:grid-cols-2">
+              {analytics.questionAccuracy.map((q) => (
+                <div key={q.questionId} className="flex items-center justify-between rounded-md border p-3">
+                  <div className="text-sm truncate pr-3">{q.prompt}</div>
+                  <div className="text-sm font-medium">{q.accuracyPercent}%</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

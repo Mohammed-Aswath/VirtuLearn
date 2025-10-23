@@ -20,6 +20,9 @@ import TeacherDashboard from "./pages/Teacher/Dashboard";
 import AssignExperiment from "./pages/Teacher/AssignExperiment";
 import CreateQuiz from "./pages/Teacher/CreateQuiz";
 import TeacherQuizAnalysis from "./pages/Teacher/QuizAnalysis";
+import ManageQuizzes from "./pages/Teacher/ManageQuizzes";
+import EditQuiz from "./pages/Teacher/EditQuiz";
+import QuizHistory from "./pages/Student/QuizHistory";
 import ExperimentLogs from "./pages/Teacher/ExperimentLogs";
 import TeacherCommunity from "./pages/Teacher/Community";
 import NotFound from "./pages/NotFound";
@@ -45,6 +48,7 @@ const App = () => (
                 <Route path="quizzes" element={<Quizzes />} />
                 <Route path="quizzes/:quizId/attempt" element={<QuizAttempt />} />
                 <Route path="quiz-analysis/:quizId" element={<StudentQuizAnalysis />} />
+                <Route path="quiz-history" element={<QuizHistory />} />
                 <Route path="community" element={<StudentCommunity />} />
                 <Route path="chatbot" element={<AiAssistant />} />
               </Route>
@@ -54,6 +58,8 @@ const App = () => (
                 <Route path="dashboard" element={<TeacherDashboard />} />
                 <Route path="assign-experiment" element={<AssignExperiment />} />
                 <Route path="create-quiz" element={<CreateQuiz />} />
+                <Route path="quizzes" element={<ManageQuizzes />} />
+                <Route path="quizzes/:quizId/edit" element={<EditQuiz />} />
                 <Route path="quiz-analysis" element={<TeacherQuizAnalysis />} />
                 <Route path="experiment-logs" element={<ExperimentLogs />} />
                 <Route path="community" element={<TeacherCommunity />} />

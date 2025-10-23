@@ -11,13 +11,22 @@ const QuizAttempt = require('../models/QuizAttempt');
 const AIAnalysis = require('../models/AIAnalysis');
 const { generateQuizFromFile } = require('../services/gemini.service');
 
+function ok(res, data, message = 'OK') {
+  res.json({ success: true, data, message });
+}
+
 const validateList = [
   query('subject').optional().isString(),
+  query('difficulty').optional().isIn(['Easy', 'Medium', 'Hard']),
+  query('mine').optional().isBoolean().toBoolean(),
   handleValidation,
 ];
 async function list(req, res, next) {
   try {
-    const filter = req.query.subject ? { subject: req.query.subject } : {};
+    const filter = {};
+    if (req.query.subject) filter.subject = req.query.subject;
+    if (req.query.difficulty) filter.difficulty = req.query.difficulty;
+    if (req.query.mine && req.user?._id) filter.createdBy = req.user._id;
     const qs = await Quiz.find(filter).lean();
     // Overlay student's last attempt if authenticated
     let attemptsByQuiz = new Map();
@@ -33,11 +42,13 @@ async function list(req, res, next) {
       const base = {
         id: q._id,
         title: q.title,
+        description: q.description,
         subject: q.subject,
         totalQuestions: q.questions.length,
-        duration: 30,
+        duration: q.duration || 30,
         difficulty: q.difficulty,
         topic: q.topic,
+        tags: q.tags || [],
         totalMarks: 100,
         dueDate: q.dueDate ? new Date(q.dueDate).toISOString().slice(0,10) : undefined,
       };
@@ -55,7 +66,7 @@ async function list(req, res, next) {
       }
       return { ...base, status: 'pending', marksObtained: null };
     });
-    res.json(mapped);
+    ok(res, mapped, 'Quizzes fetched successfully');
   } catch (err) {
     next(err);
   }
@@ -66,7 +77,7 @@ async function getById(req, res, next) {
   try {
     const quiz = await Quiz.findById(req.params.quizId).lean();
     if (!quiz) return res.status(404).json({ error: 'NotFound', message: 'Quiz not found', code: 404 });
-    res.json({ quiz: { ...quiz, id: quiz._id } });
+    ok(res, { quiz: { ...quiz, id: quiz._id } }, 'Quiz fetched successfully');
   } catch (err) {
     next(err);
   }
@@ -80,9 +91,38 @@ const validateCreate = [
 ];
 async function create(req, res, next) {
   try {
-    const { title, subject, dueDate, difficulty, topic, questions } = req.body;
-    const quiz = await Quiz.create({ title, subject, dueDate, difficulty, topic, questions, createdBy: req.user?._id });
-    res.status(201).json({ quiz });
+    const { title, subject, dueDate, difficulty, topic, description, tags, duration, questions } = req.body;
+    const quiz = await Quiz.create({ title, subject, dueDate, difficulty, topic, description, tags, duration, questions, createdBy: req.user?._id });
+    res.status(201);
+    ok(res, { quiz }, 'Quiz created');
+  } catch (err) {
+    next(err);
+  }
+}
+
+const validateUpdate = [
+  param('quizId').isMongoId(),
+  body('title').optional().isString().notEmpty(),
+  body('subject').optional().isString().notEmpty(),
+  body('description').optional().isString(),
+  body('dueDate').optional().isISO8601().toDate(),
+  body('difficulty').optional().isIn(['Easy','Medium','Hard']),
+  body('topic').optional().isString(),
+  body('tags').optional().isArray(),
+  body('duration').optional().isInt({ min: 1, max: 240 }),
+  body('questions').optional().isArray({ min: 1 }),
+  handleValidation,
+];
+async function update(req, res, next) {
+  try {
+    const updates = { ...req.body };
+    const quiz = await Quiz.findOneAndUpdate(
+      { _id: req.params.quizId },
+      { $set: updates },
+      { new: true }
+    ).lean();
+    if (!quiz) return res.status(404).json({ error: 'NotFound', message: 'Quiz not found', code: 404 });
+    ok(res, { quiz }, 'Quiz updated');
   } catch (err) {
     next(err);
   }
@@ -106,7 +146,7 @@ async function attempt(req, res, next) {
     }
     const score = Math.round((correct / Math.max(1, quiz.questions.length)) * 100);
     const doc = await QuizAttempt.create({ quizId: quiz._id, studentId: req.user?._id, answers, score, status: 'attended' });
-    res.json({ attemptId: doc._id, score });
+    ok(res, { attemptId: doc._id, score }, 'Attempt recorded');
   } catch (err) {
     next(err);
   }
@@ -116,7 +156,7 @@ const validateAnalysis = [param('quizId').isMongoId(), handleValidation];
 async function analysis(req, res, next) {
   try {
     const lastAttempt = await QuizAttempt.findOne({ quizId: req.params.quizId, studentId: req.user?._id }).sort({ attemptDate: -1 }).lean();
-    if (!lastAttempt) return res.json({ aiAnalyses: { strengths: [], weaknesses: [], suggestions: [], topicWiseScore: [] } });
+    if (!lastAttempt) return ok(res, { aiAnalyses: { strengths: [], weaknesses: [], suggestions: [], topicWiseScore: [] } }, 'No attempts yet');
     let ai = await AIAnalysis.findOne({ attemptId: lastAttempt._id }).lean();
     if (!ai) {
       // Lightweight analysis generation (with Gemini suggestion if available)
@@ -137,7 +177,7 @@ async function analysis(req, res, next) {
       { topic: 'Topic B', score: lastAttempt.score },
       { topic: 'Topic C', score: Math.min(100, lastAttempt.score + 5) },
     ];
-    res.json({ aiAnalyses: { strengths: ai.strengths, weaknesses: ai.weaknesses, suggestions: ai.recommendations, topicWiseScore } });
+    ok(res, { aiAnalyses: { strengths: ai.strengths, weaknesses: ai.weaknesses, suggestions: ai.recommendations, topicWiseScore } }, 'Analysis ready');
   } catch (err) {
     next(err);
   }
@@ -147,7 +187,7 @@ const validateMyAttempts = [param('quizId').isMongoId(), handleValidation];
 async function listMyAttempts(req, res, next) {
   try {
     const attempts = await QuizAttempt.find({ quizId: req.params.quizId, studentId: req.user?._id }).sort({ attemptDate: -1 }).lean();
-    res.json(attempts);
+    ok(res, attempts, 'My attempts');
   } catch (err) {
     next(err);
   }
@@ -156,12 +196,135 @@ async function listMyAttempts(req, res, next) {
 async function listAttempts(req, res, next) {
   try {
     const attempts = await QuizAttempt.find({ quizId: req.query.quizId }).lean();
-    res.json(attempts);
+    ok(res, attempts, 'Attempts list');
   } catch (err) {
     next(err);
   }
 }
 
-module.exports = { list, validateList, getById, validateGet, create, validateCreate, attempt, validateAttempt, analysis, validateAnalysis, listAttempts, listMyAttempts, validateMyAttempts };
+const validateDelete = [param('quizId').isMongoId(), handleValidation];
+async function remove(req, res, next) {
+  try {
+    const deleted = await Quiz.findByIdAndDelete(req.params.quizId).lean();
+    if (!deleted) return res.status(404).json({ error: 'NotFound', message: 'Quiz not found', code: 404 });
+    ok(res, { id: deleted._id }, 'Quiz deleted');
+  } catch (err) {
+    next(err);
+  }
+}
+
+const validateAnalytics = [param('quizId').isMongoId(), handleValidation];
+async function analytics(req, res, next) {
+  try {
+    const quiz = await Quiz.findById(req.params.quizId).lean();
+    if (!quiz) return res.status(404).json({ error: 'NotFound', message: 'Quiz not found', code: 404 });
+    const attempts = await QuizAttempt.find({ quizId: quiz._id }).lean();
+    const total = attempts.length || 1;
+    const averageScore = attempts.reduce((s, a) => s + (a.score || 0), 0) / total;
+    const top = attempts.reduce((m, a) => (a.score > (m?.score || -1) ? a : m), null);
+    // Question-level accuracy
+    const correctMap = new Map(quiz.questions.map((q) => [String(q._id), q.correctIndex]));
+    const perQuestion = quiz.questions.map((q) => ({ questionId: String(q._id), prompt: q.prompt, correct: 0, total: 0 }));
+    const byId = new Map(perQuestion.map((x) => [x.questionId, x]));
+    for (const a of attempts) {
+      for (const ans of a.answers || []) {
+        const id = String(ans.questionId);
+        const rec = byId.get(id);
+        if (!rec) continue;
+        rec.total += 1;
+        if (correctMap.get(id) === ans.chosenIndex) rec.correct += 1;
+      }
+    }
+    const questionAccuracy = perQuestion.map((r) => ({
+      questionId: r.questionId,
+      prompt: r.prompt,
+      accuracyPercent: r.total ? Math.round((r.correct / r.total) * 100) : 0,
+    }));
+    ok(res, {
+      summary: {
+        attempts: attempts.length,
+        averageScore: Math.round(averageScore),
+        topPerformer: top ? { studentId: top.studentId, score: top.score } : null,
+      },
+      questionAccuracy,
+      attempts,
+    }, 'Analytics computed');
+  } catch (err) {
+    next(err);
+  }
+}
+
+const validateGenerate = [
+  body('prompt').optional().isString(),
+  body('fileUrl').optional().isString(),
+  body('subject').optional().isString(),
+  body('difficulty').optional().isIn(['Easy','Medium','Hard']),
+  body('numQuestions').optional().isInt({ min: 1, max: 50 }),
+  handleValidation,
+];
+async function generate(req, res, next) {
+  try {
+    const { prompt, fileUrl, subject, difficulty } = req.body;
+    const { quizDraft } = await generateQuizFromFile({ fileUrl, prompt });
+    const merged = { ...quizDraft, subject: subject || quizDraft.subject, difficulty: difficulty || 'Medium' };
+    ok(res, { quizDraft: merged }, 'Quiz draft generated');
+  } catch (err) {
+    next(err);
+  }
+}
+
+const validateReport = [param('quizId').isMongoId(), handleValidation];
+async function report(req, res, next) {
+  try {
+    let PDFDocument;
+    try {
+      // Lazy require to avoid hard dependency during tests
+      // eslint-disable-next-line
+      PDFDocument = require('pdfkit');
+    } catch (_e) {
+      return res.status(501).json({ success: false, message: 'PDF generation not available on this deployment' });
+    }
+    const quiz = await Quiz.findById(req.params.quizId).lean();
+    if (!quiz) return res.status(404).json({ error: 'NotFound', message: 'Quiz not found', code: 404 });
+    const attempts = await QuizAttempt.find({ quizId: quiz._id }).lean();
+    const filename = `quiz-report-${String(quiz._id)}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    doc.pipe(res);
+    doc.fontSize(18).text(`Quiz Report: ${quiz.title}`, { underline: true });
+    doc.moveDown();
+    doc.fontSize(12).text(`Subject: ${quiz.subject}`);
+    doc.text(`Difficulty: ${quiz.difficulty}`);
+    doc.text(`Questions: ${quiz.questions.length}`);
+    doc.text(`Generated: ${new Date().toISOString()}`);
+    doc.moveDown();
+    const avg = attempts.length ? Math.round(attempts.reduce((s,a)=>s+(a.score||0),0)/attempts.length) : 0;
+    doc.text(`Attempts: ${attempts.length}`);
+    doc.text(`Average Score: ${avg}`);
+    doc.moveDown();
+    doc.text('Question Accuracy:');
+    const correctMap = new Map(quiz.questions.map((q) => [String(q._id), q.correctIndex]));
+    const stats = new Map(quiz.questions.map((q) => [String(q._id), { correct:0, total:0, prompt: q.prompt }]));
+    for (const a of attempts) {
+      for (const ans of a.answers || []) {
+        const id = String(ans.questionId);
+        const s = stats.get(id);
+        if (!s) continue;
+        s.total += 1;
+        if (correctMap.get(id) === ans.chosenIndex) s.correct += 1;
+      }
+    }
+    for (const [_, s] of stats) {
+      const pct = s.total ? Math.round((s.correct / s.total) * 100) : 0;
+      doc.text(`- ${s.prompt.slice(0, 80)}...: ${pct}%`);
+    }
+    doc.end();
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { list, validateList, getById, validateGet, create, validateCreate, update, validateUpdate, remove, validateDelete, attempt, validateAttempt, analysis, validateAnalysis, analytics, validateAnalytics, listAttempts, listMyAttempts, validateMyAttempts, generate, validateGenerate, report, validateReport };
 
 

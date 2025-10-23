@@ -21,6 +21,7 @@ const TeacherLayout = () => {
     { to: '/teacher/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/teacher/assign-experiment', icon: FlaskConical, label: 'Assign Experiment' },
     { to: '/teacher/create-quiz', icon: FileText, label: 'Create Quiz' },
+    { to: '/teacher/quizzes', icon: ClipboardList, label: 'Manage Quizzes' },
     { to: '/teacher/quiz-analysis', icon: ClipboardList, label: 'Quiz Analysis' },
     { to: '/teacher/experiment-logs', icon: ScrollText, label: 'Experiment Logs' },
     { to: '/teacher/community', icon: MessageSquare, label: 'Community' }

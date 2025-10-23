@@ -74,35 +74,33 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/c
 
 ## How to replace mock data with real API endpoints
 
-This app is wired to a mock API layer in `src/services/api.js`. To migrate to a real Node/Express backend:
+This app is wired to an API layer in `src/services/api.js`. To migrate from mocks to the real Node/Express backend:
 
-1. Set `VITE_USE_MOCKS=false` in your environment.
-2. Replace each function in `src/services/api.js` from `Promise.resolve(...)` to axios calls:
+1. Set `VITE_BACKEND_URL` to your backend base URL (e.g., `http://localhost:8081`).
+2. Ensure axios baseURL uses `VITE_BACKEND_URL` and JWT is attached via interceptors (already implemented).
+3. Keep component contracts unchanged (shape of responses must match the frontend expectations noted in file headers). If your backend schema differs, adapt and normalize data in `services/api.js` only.
+4. Sample conversion when your backend returns `{ success, data, message }`:
 
 ```js
-// Before (mock)
+// services/api.js
+const api = axios.create({ baseURL: import.meta.env.VITE_BACKEND_URL });
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('virtulearn_token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+const unwrap = (res) => (res?.data && Object.prototype.hasOwnProperty.call(res.data, 'data') ? res.data.data : res?.data);
 export async function getQuizzes(params) {
-  return Promise.resolve(mockQuizzes);
-}
-
-// After (real)
-// TODO: Replace mock call with axios.get('/api/quizzes', { params })
-import axios from 'axios';
-export async function getQuizzes(params) {
-  const { data } = await axios.get('/api/quizzes', { params });
-  return data;
+  const res = await api.get('/api/quizzes', { params });
+  return unwrap(res);
 }
 ```
-
-3. Keep component contracts unchanged (shape of responses must match the frontend expectations noted in file headers). If your backend schema differs, adapt and normalize data in `services/api.js` only.
-
-4. Add authentication headers/interceptors in `services/api.js` once backend auth is ready.
 
 Developer workflow:
 - Build UI against mocks → hook up real endpoints in `services/api.js` → remove mocks by switching the env flag.
 
 Using the real backend:
-- Set `VITE_BACKEND_URL=http://localhost:5000` in a `.env` at the project root
+- Set `VITE_BACKEND_URL=http://localhost:8081` in a `.env` at the project root
 - Start backend: `cd backend && npm run start:dev`
 - Seed users: `npm run seed` (backend)
   - Student: `alex@example.com / password123`

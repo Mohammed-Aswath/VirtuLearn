@@ -29,71 +29,104 @@ api.interceptors.response.use(
   }
 );
 
+// Unwraps backend wrapper { success, data, message } falling back to original data
+const unwrap = (res) => (res?.data && Object.prototype.hasOwnProperty.call(res.data, 'data') ? res.data.data : res?.data);
+
 // Quizzes
 export const getQuizzes = async (params = {}) => {
   const res = await api.get('/api/quizzes', { params });
-  return res.data;
+  return unwrap(res);
 };
 
 export const getQuizById = async (id) => {
   const res = await api.get(`/api/quizzes/${id}`);
-  return res.data;
+  return unwrap(res);
 };
 
 export const createQuiz = async (payload) => {
   // TODO: API -> /api/quizzes (POST)
   const res = await api.post('/api/quizzes', payload);
-  return res.data;
+  return unwrap(res);
+};
+
+export const updateQuiz = async (id, payload) => {
+  const res = await api.put(`/api/quizzes/${id}`, payload);
+  return unwrap(res);
+};
+
+export const deleteQuiz = async (id) => {
+  const res = await api.delete(`/api/quizzes/${id}`);
+  return unwrap(res);
 };
 
 export const submitQuiz = async (id, answers) => {
   // supports alias /attempt and /submit
   const res = await api.post(`/api/quizzes/${id}/submit`, { answers });
-  return res.data;
+  return unwrap(res);
 };
 
 export const getQuizAnalysis = async (id) => {
   const res = await api.get(`/api/quizzes/${id}/analysis`);
-  return res.data;
+  return unwrap(res);
+};
+
+export const getQuizAnalytics = async (id) => {
+  const res = await api.get(`/api/quizzes/${id}/analytics`);
+  return unwrap(res);
+};
+
+export const generateQuizDraft = async (payload) => {
+  const res = await api.post('/api/quizzes/generate', payload);
+  return unwrap(res); // { quizDraft }
+};
+
+export const getMyQuizAttempts = async (quizId) => {
+  const res = await api.get(`/api/quizzes/${quizId}/my-attempts`);
+  return unwrap(res);
+};
+
+export const downloadQuizReport = async (quizId) => {
+  const res = await api.get(`/api/quizzes/${quizId}/report`, { responseType: 'blob' });
+  return res.data; // Blob
 };
 
 // Experiments
 export const getExperiments = async (params = {}) => {
   const res = await api.get('/api/experiments', { params });
-  return res.data;
+  return unwrap(res);
 };
 
 export const assignExperiment = async (payload) => {
   const res = await api.post('/api/experiments/assign', payload);
-  return res.data;
+  return unwrap(res);
 };
 
 export const getExperimentLogs = async (params = {}) => {
   const res = await api.get('/api/experiments/logs', { params });
-  return res.data;
+  return unwrap(res);
 };
 
 // Community
 export const getCommunityPosts = async (params = {}) => {
   // supports /api/community and /api/community/posts
   const res = await api.get('/api/community/posts', { params });
-  return res.data;
+  return unwrap(res);
 };
 
 export const createCommunityPost = async (payload) => {
   const res = await api.post('/api/community/posts', payload);
-  return res.data;
+  return unwrap(res);
 };
 
 export const addComment = async (postId, text) => {
   const res = await api.post(`/api/community/comment/${postId}`, { text });
-  return res.data;
+  return unwrap(res);
 };
 
 // S3 uploads (presign then PUT)
 export const getPresignedUpload = async ({ key, contentType }) => {
   const res = await api.get('/api/s3/presign-upload', { params: { key, contentType } });
-  return res.data; // { url }
+  return unwrap(res); // { url }
 };
 
 export const uploadWithPresignedUrl = async (url, file, contentType) => {
@@ -102,7 +135,7 @@ export const uploadWithPresignedUrl = async (url, file, contentType) => {
 
 export const saveS3Metadata = async (metadata) => {
   const res = await api.post('/api/s3/metadata', metadata);
-  return res.data;
+  return unwrap(res);
 };
 
 export const uploadMedia = async (file, { keyPrefix = 'virtulearn/uploads' } = {}) => {
@@ -118,27 +151,29 @@ export const uploadMedia = async (file, { keyPrefix = 'virtulearn/uploads' } = {
 // AI Chat
 export const sendChatbotPrompt = async (message, context = {}) => {
   const res = await api.post('/api/ai/chat', { message, context });
-  return res.data; // { messages, suggestion }
+  return unwrap(res); // { messages, suggestion }
 };
 
 // Auth helpers used by Login page
 export const login = async (email, password) => {
   const res = await api.post('/api/auth/login', { email, password });
-  const token = res.data?.token;
+  const d = unwrap(res);
+  const token = d?.token;
   if (token) localStorage.setItem('virtulearn_token', token);
-  return res.data;
+  return d;
 };
 
 export const register = async (payload) => {
   const res = await api.post('/api/auth/register', payload);
-  const token = res.data?.token;
+  const d = unwrap(res);
+  const token = d?.token;
   if (token) localStorage.setItem('virtulearn_token', token);
-  return res.data;
+  return d;
 };
 
 export const me = async () => {
   const res = await api.get('/api/auth/me');
-  return res.data;
+  return unwrap(res);
 };
 
 // ----- Aliases for backward compatibility with existing pages -----
@@ -166,7 +201,7 @@ export const postCreateQuiz = async (payload) => createQuiz(payload);
 
 export const getQuizAttempts = async (quizId) => {
   const res = await api.get(`/api/quizzes/${quizId}/attempts`);
-  return res.data;
+  return unwrap(res);
 };
 
 

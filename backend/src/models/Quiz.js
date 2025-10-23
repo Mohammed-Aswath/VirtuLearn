@@ -11,6 +11,7 @@ const QuestionSchema = new Schema(
     prompt: { type: String, required: true },
     choices: { type: [String], required: true },
     correctIndex: { type: Number, required: true },
+    explanation: { type: String }, // optional explanation for learning feedback
   },
   { _id: true }
 );
@@ -18,10 +19,13 @@ const QuestionSchema = new Schema(
 const QuizSchema = new Schema(
   {
     title: { type: String, required: true },
+    description: { type: String },
     subject: { type: String, required: true },
     dueDate: { type: Date },
     difficulty: { type: String, enum: ['Easy','Medium','Hard'], default: 'Medium' },
     topic: { type: String },
+    tags: { type: [String], default: [] },
+    duration: { type: Number, default: 30 }, // minutes
     questions: { type: [QuestionSchema], default: [] },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
     createdAt: { type: Date, default: Date.now },
