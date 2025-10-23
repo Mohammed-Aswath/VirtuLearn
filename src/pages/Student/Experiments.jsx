@@ -1,9 +1,16 @@
+/*
+ * UPDATED BY CURSOR — PURPOSE: Sliding pill tabs + elevated card grid for experiments.
+ * BACKEND CONTRACT (README): GET `/api/experiments?subject=<Physics|Chemistry|Biology>`
+ * returns [{ id, title, subject, description, difficulty, duration, arcwareUrl, thumbnailUrl }]
+ * TODO: API -> /api/experiments
+ */
 import { useEffect, useState } from 'react';
 import { subjects } from '../../data/mockData';
 import { getExperiments } from '../../services/api';
 import ExperimentCard from '../../components/ExperimentCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { FlaskConical } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const Experiments = () => {
   const [selectedSubject, setSelectedSubject] = useState('Physics');
@@ -34,9 +41,18 @@ const Experiments = () => {
       </div>
 
       <Tabs value={selectedSubject} onValueChange={setSelectedSubject}>
-        <TabsList className="grid w-full max-w-md grid-cols-3">
+        <TabsList className="relative w-full max-w-xl overflow-hidden rounded-full bg-muted/50 border border-border/40 p-1">
+          <motion.div
+            className="absolute top-1 bottom-1 left-1 w-[33.333%] rounded-full bg-background shadow-sm"
+            transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+            animate={{ x: `${subjects.indexOf(selectedSubject) * 100}%` }}
+          />
           {subjects.map(subject => (
-            <TabsTrigger key={subject} value={subject}>
+            <TabsTrigger
+              key={subject}
+              value={subject}
+              className="relative z-10 flex-1 rounded-full text-sm font-medium text-muted-foreground data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            >
               {subject}
             </TabsTrigger>
           ))}

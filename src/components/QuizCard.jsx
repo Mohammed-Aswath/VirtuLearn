@@ -1,4 +1,9 @@
-import { Calendar, Clock, Award, AlertCircle } from 'lucide-react';
+/*
+ * UPDATED BY CURSOR — PURPOSE: Enhanced quiz card with improved hierarchy,
+ * subtle hover lift, and right-aligned primary action.
+ * Backend contract unchanged. Consumes `quiz` object with fields used below.
+ */
+import { Calendar, Clock, Award, AlertCircle, Layers, ListChecks } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -44,14 +49,19 @@ const QuizCard = ({ quiz, index = 0 }) => {
       transition={{ duration: 0.3, delay: index * 0.08 }}
       whileHover={{ y: -4 }}
     >
-      <Card className="p-5 transition-all duration-300 hover:shadow-lg h-full">
+      <Card className="p-5 transition-all duration-300 hover:shadow-lg/60 border-border/60 h-full">
         <div className="space-y-4">
           <div className="flex items-start justify-between">
-            <div className="space-y-1 flex-1">
-              <h3 className="font-semibold text-lg text-foreground">{quiz.title}</h3>
-              <Badge variant="outline" className="text-xs">{quiz.subject}</Badge>
+            <div className="space-y-1 flex-1 pr-3">
+              <h3 className="font-semibold text-lg text-foreground tracking-tight">{quiz.title}</h3>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">{quiz.subject}</Badge>
+                {quiz.difficulty && (
+                  <Badge variant="secondary" className="text-[10px]">{quiz.difficulty}</Badge>
+                )}
+              </div>
             </div>
-            <Badge className={config.color}>
+            <Badge className={`${config.color} capitalize`}>
               <StatusIcon className="h-3 w-3 mr-1" />
               {quiz.status}
             </Badge>
@@ -68,10 +78,20 @@ const QuizCard = ({ quiz, index = 0 }) => {
               <Clock className="h-4 w-4" />
               <span>{quiz.duration} mins</span>
             </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <ListChecks className="h-4 w-4" />
+              <span>{quiz.totalQuestions} questions</span>
+            </div>
+            {quiz.topic && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Layers className="h-4 w-4" />
+                <span>{quiz.topic}</span>
+              </div>
+            )}
           </div>
 
           {quiz.status === 'attended' && (
-            <motion.div 
+            <motion.div
               className="flex items-center justify-between p-3 rounded-lg bg-muted"
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
@@ -84,16 +104,18 @@ const QuizCard = ({ quiz, index = 0 }) => {
             </motion.div>
           )}
 
-          <Button
-            className="w-full group"
-            onClick={handleAction}
-            disabled={quiz.status === 'missed'}
-            variant={quiz.status === 'attended' ? 'outline' : 'default'}
-          >
-            <span className="group-hover:translate-x-0.5 transition-transform inline-block">
-              {config.action}
-            </span>
-          </Button>
+          <div className="flex items-center justify-end pt-1">
+            <Button
+              className="group min-w-[9rem]"
+              onClick={handleAction}
+              disabled={quiz.status === 'missed'}
+              variant={quiz.status === 'attended' ? 'outline' : 'default'}
+            >
+              <span className="group-hover:translate-x-0.5 transition-transform inline-block">
+                {config.action}
+              </span>
+            </Button>
+          </div>
         </div>
       </Card>
     </motion.div>

@@ -21,6 +21,9 @@ const CreateQuiz = () => {
   ]);
   const [saving, setSaving] = useState(false);
   const [resultId, setResultId] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [difficulty, setDifficulty] = useState('Medium');
+  const [topic, setTopic] = useState('');
 
   const addQuestion = () => {
     setQuestions((prev) => ([...prev, { id: `Q${prev.length + 1}`, prompt: '', choices: ['', '', '', ''], correctIndex: 0 }]));
@@ -37,8 +40,8 @@ const CreateQuiz = () => {
   const onSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    const { quiz } = await createQuiz({ title, subject, questions });
-    setResultId(quiz.id);
+    const { quiz } = await createQuiz({ title, subject, dueDate, difficulty, topic, questions });
+    setResultId(quiz._id || quiz.id);
     setSaving(false);
   };
 
@@ -64,6 +67,27 @@ const CreateQuiz = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="due">Due Date</Label>
+              <Input id="due" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Difficulty</Label>
+              <Select value={difficulty} onValueChange={setDifficulty}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select difficulty" />
+                </SelectTrigger>
+                <SelectContent>
+                  {['Easy','Medium','Hard'].map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="topic">Topic</Label>
+              <Input id="topic" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Optional topic" />
             </div>
           </div>
 

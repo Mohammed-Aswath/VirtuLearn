@@ -9,6 +9,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { getQuizById, submitQuiz } from '../../services/api';
+import { useToast } from '@/hooks/use-toast';
 
 const QuizAttempt = () => {
   const { quizId } = useParams();
@@ -16,6 +17,7 @@ const QuizAttempt = () => {
   const [quiz, setQuiz] = useState(null);
   const [answers, setAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const { toast } = useToast ? useToast() : { toast: () => {} };
 
   useEffect(() => {
     getQuizById(quizId).then(({ quiz }) => setQuiz(quiz));
@@ -25,16 +27,23 @@ const QuizAttempt = () => {
     setAnswers((prev) => ({ ...prev, [questionId]: idx }));
   };
 
+  const allAnswered = quiz?.questions?.every((q) => typeof answers[q._id] === 'number' && answers[q._id] >= 0);
+
   const handleSubmit = async () => {
     if (!quiz) return;
     setSubmitting(true);
-    const payload = {
-      answers: quiz.questions.map((q) => ({ questionId: q.id, chosenIndex: answers[q.id] ?? -1 })),
-    };
-    const { attemptId, score } = await submitQuiz(quiz.id, payload.answers);
-    // eslint-disable-next-line no-console
-    console.log('Attempt saved', attemptId, score);
-    navigate(`/student/quiz-analysis/${quiz.id}`);
+    try {
+      const payload = {
+        answers: quiz.questions.map((q) => ({ questionId: q._id, chosenIndex: answers[q._id] ?? -1 })),
+      };
+      const { attemptId, score } = await submitQuiz(quizId, payload.answers);
+      toast && toast({ title: 'Quiz submitted', description: `Score: ${score}` });
+      navigate(`/student/quiz-analysis/${quizId}`);
+    } catch (err) {
+      toast && toast({ title: 'Submit failed', description: err.message || 'Validation failed', variant: 'destructive' });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!quiz) {
@@ -50,17 +59,17 @@ const QuizAttempt = () => {
 
       <div className="space-y-4">
         {quiz.questions.map((q, idx) => (
-          <Card key={q.id} className="p-5 space-y-3">
+          <Card key={q._id} className="p-5 space-y-3">
             <div className="font-medium">Q{idx + 1}. {q.prompt}</div>
             <div className="grid gap-2">
               {q.choices.map((c, cIdx) => (
                 <label key={cIdx} className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${answers[q.id] === cIdx ? 'border-primary bg-primary/5' : 'hover:bg-muted'}`}>
                   <input
                     type="radio"
-                    name={q.id}
+                    name={q._id}
                     aria-label={`Choice ${cIdx + 1}`}
-                    checked={answers[q.id] === cIdx}
-                    onChange={() => handleSelect(q.id, cIdx)}
+                    checked={answers[q._id] === cIdx}
+                    onChange={() => handleSelect(q._id, cIdx)}
                   />
                   <span>{c}</span>
                 </label>
@@ -70,7 +79,7 @@ const QuizAttempt = () => {
         ))}
       </div>
 
-      <Button onClick={handleSubmit} disabled={submitting} className="w-full md:w-auto">
+      <Button onClick={handleSubmit} disabled={submitting || !allAnswered} className="w-full md:w-auto">
         {submitting ? 'Submitting...' : 'Submit Quiz'}
       </Button>
     </div>

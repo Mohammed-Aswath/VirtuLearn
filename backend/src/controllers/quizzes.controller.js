@@ -19,17 +19,42 @@ async function list(req, res, next) {
   try {
     const filter = req.query.subject ? { subject: req.query.subject } : {};
     const qs = await Quiz.find(filter).lean();
-    // Map to simplified shape for frontend compatibility
-    const mapped = qs.map((q) => ({
-      id: q._id,
-      title: q.title,
-      subject: q.subject,
-      totalQuestions: q.questions.length,
-      duration: 30,
-      status: 'pending',
-      marksObtained: null,
-      totalMarks: 100,
-    }));
+    // Overlay student's last attempt if authenticated
+    let attemptsByQuiz = new Map();
+    if (req.auth?.id) {
+      const attempts = await QuizAttempt.find({ studentId: req.auth.id }).sort({ attemptDate: -1 }).lean();
+      for (const a of attempts) {
+        const k = String(a.quizId);
+        if (!attemptsByQuiz.has(k)) attemptsByQuiz.set(k, a);
+      }
+    }
+    const now = Date.now();
+    const mapped = qs.map((q) => {
+      const base = {
+        id: q._id,
+        title: q.title,
+        subject: q.subject,
+        totalQuestions: q.questions.length,
+        duration: 30,
+        difficulty: q.difficulty,
+        topic: q.topic,
+        totalMarks: 100,
+        dueDate: q.dueDate ? new Date(q.dueDate).toISOString().slice(0,10) : undefined,
+      };
+      const latest = attemptsByQuiz.get(String(q._id));
+      if (latest) {
+        return {
+          ...base,
+          status: 'attended',
+          marksObtained: latest.score,
+          completedDate: new Date(latest.attemptDate).toISOString().slice(0,10),
+        };
+      }
+      if (q.dueDate && new Date(q.dueDate).getTime() < now) {
+        return { ...base, status: 'missed', marksObtained: null };
+      }
+      return { ...base, status: 'pending', marksObtained: null };
+    });
     res.json(mapped);
   } catch (err) {
     next(err);
@@ -41,7 +66,7 @@ async function getById(req, res, next) {
   try {
     const quiz = await Quiz.findById(req.params.quizId).lean();
     if (!quiz) return res.status(404).json({ error: 'NotFound', message: 'Quiz not found', code: 404 });
-    res.json({ quiz });
+    res.json({ quiz: { ...quiz, id: quiz._id } });
   } catch (err) {
     next(err);
   }
@@ -55,8 +80,8 @@ const validateCreate = [
 ];
 async function create(req, res, next) {
   try {
-    const { title, subject, questions } = req.body;
-    const quiz = await Quiz.create({ title, subject, questions, createdBy: req.user?._id });
+    const { title, subject, dueDate, difficulty, topic, questions } = req.body;
+    const quiz = await Quiz.create({ title, subject, dueDate, difficulty, topic, questions, createdBy: req.user?._id });
     res.status(201).json({ quiz });
   } catch (err) {
     next(err);

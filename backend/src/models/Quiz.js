@@ -19,6 +19,9 @@ const QuizSchema = new Schema(
   {
     title: { type: String, required: true },
     subject: { type: String, required: true },
+    dueDate: { type: Date },
+    difficulty: { type: String, enum: ['Easy','Medium','Hard'], default: 'Medium' },
+    topic: { type: String },
     questions: { type: [QuestionSchema], default: [] },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
     createdAt: { type: Date, default: Date.now },
