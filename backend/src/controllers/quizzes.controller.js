@@ -119,8 +119,18 @@ async function analysis(req, res, next) {
     if (!lastAttempt) return res.json({ aiAnalyses: { strengths: [], weaknesses: [], suggestions: [], topicWiseScore: [] } });
     let ai = await AIAnalysis.findOne({ attemptId: lastAttempt._id }).lean();
     if (!ai) {
-      // Mock generate if missing
-      ai = await AIAnalysis.create({ attemptId: lastAttempt._id, strengths: ['Strong fundamentals'], weaknesses: ['Time management'], recommendations: ['Practice timed quizzes'], generatedAt: new Date() });
+      // Lightweight analysis generation (with Gemini suggestion if available)
+      const strengths = lastAttempt.score >= 80 ? ['Excellent conceptual understanding'] : lastAttempt.score >= 60 ? ['Good foundational knowledge'] : ['Basic understanding present'];
+      const weaknesses = lastAttempt.score < 60 ? ['Needs practice on fundamentals'] : lastAttempt.score < 80 ? ['Improve speed and accuracy'] : ['Minor gaps to address'];
+      const { chat } = require('../services/gemini.service');
+      let recommendations = ['Review weak topics and practice timed questions'];
+      try {
+        const resp = await chat(String(req.user?._id || ''), [], `Provide one short recommendation for a student who scored ${lastAttempt.score}/100 on a quiz. Keep it under 140 characters.`);
+        const assistant = (resp?.messages || []).find((m) => m.role === 'assistant');
+        if (assistant?.message) recommendations = [assistant.message];
+      } catch (_e) {}
+      const created = await AIAnalysis.create({ attemptId: lastAttempt._id, strengths, weaknesses, recommendations, generatedAt: new Date() });
+      ai = created.toObject();
     }
     const topicWiseScore = [
       { topic: 'Topic A', score: Math.max(50, lastAttempt.score - 10) },
@@ -128,6 +138,16 @@ async function analysis(req, res, next) {
       { topic: 'Topic C', score: Math.min(100, lastAttempt.score + 5) },
     ];
     res.json({ aiAnalyses: { strengths: ai.strengths, weaknesses: ai.weaknesses, suggestions: ai.recommendations, topicWiseScore } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+const validateMyAttempts = [param('quizId').isMongoId(), handleValidation];
+async function listMyAttempts(req, res, next) {
+  try {
+    const attempts = await QuizAttempt.find({ quizId: req.params.quizId, studentId: req.user?._id }).sort({ attemptDate: -1 }).lean();
+    res.json(attempts);
   } catch (err) {
     next(err);
   }
@@ -142,6 +162,6 @@ async function listAttempts(req, res, next) {
   }
 }
 
-module.exports = { list, validateList, getById, validateGet, create, validateCreate, attempt, validateAttempt, analysis, validateAnalysis, listAttempts };
+module.exports = { list, validateList, getById, validateGet, create, validateCreate, attempt, validateAttempt, analysis, validateAnalysis, listAttempts, listMyAttempts, validateMyAttempts };
 
 

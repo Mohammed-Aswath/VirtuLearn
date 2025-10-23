@@ -6,7 +6,7 @@
 const router = require('express').Router();
 const { verifyToken, attachUser } = require('../middlewares/auth.middleware');
 const { requireRole } = require('../middlewares/role.middleware');
-const { list, validateList, getById, validateGet, create, validateCreate, attempt, validateAttempt, analysis, validateAnalysis, listAttempts } = require('../controllers/quizzes.controller');
+const { list, validateList, getById, validateGet, create, validateCreate, attempt, validateAttempt, analysis, validateAnalysis, listAttempts, listMyAttempts, validateMyAttempts } = require('../controllers/quizzes.controller');
 
 router.get('/', validateList, list);
 router.get('/:quizId', validateGet, getById);
@@ -16,6 +16,7 @@ router.post('/:quizId/attempt', verifyToken, attachUser, validateAttempt, attemp
 router.post('/:quizId/submit', verifyToken, attachUser, validateAttempt, attempt);
 router.get('/:quizId/analysis', verifyToken, attachUser, validateAnalysis, analysis);
 router.get('/:quizId/attempts', verifyToken, attachUser, requireRole('teacher', 'admin'), listAttempts);
+router.get('/:quizId/my-attempts', verifyToken, attachUser, validateMyAttempts, listMyAttempts);
 
 module.exports = router;
 
